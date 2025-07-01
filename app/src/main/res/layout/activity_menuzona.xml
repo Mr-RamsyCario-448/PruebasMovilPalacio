@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FFFFFF"
+    android:gravity="center_horizontal"
+    tools:context=".menuzona">
+
+    <!-- Imagen arriba centrada -->
+    <ImageView
+        android:id="@+id/logoImage"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:src="@drawable/palacio2"
+        android:contentDescription="Logo Apatzingán"
+        android:scaleType="fitCenter"
+        android:adjustViewBounds="true"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Título debajo de la imagen -->
+    <TextView
+        android:id="@+id/tvTitulo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Opciones de áreas de trabajo"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="#80142B"
+        android:gravity="center"
+        android:padding="16dp" />
+
+    <!-- Contenedor de botones -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="16dp">
+
+        <Button
+            android:id="@+id/btnMercado"
+            style="@style/EstiloBotonArea"
+            android:text="Área mercado"
+            android:layout_marginTop="12dp" />
+
+        <Button
+            android:id="@+id/btnViasPublicas"
+            style="@style/EstiloBotonArea"
+            android:text="Área de Vías Públicas"
+            android:layout_marginTop="12dp" />
+
+        <Button
+            android:id="@+id/btnAlcoholes"
+            style="@style/EstiloBotonArea"
+            android:text="Área de Alcoholes"
+            android:layout_marginTop="12dp" />
+
+        <Button
+            android:id="@+id/btnAlcoholes2"
+            style="@style/EstiloBotonArea"
+            android:text="Área de alcoholes"
+            android:layout_marginTop="12dp" />
+
+        <Button
+            android:id="@+id/btnTesoreria"
+            style="@style/EstiloBotonArea"
+            android:text="Área de tesorería"
+            android:layout_marginTop="12dp" />
+    </LinearLayout>
+
+</LinearLayout>
