@@ -21,9 +21,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 
 @Composable
-fun MenuZonaScreen() {
+fun MenuZonaScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -57,19 +58,23 @@ fun MenuZonaScreen() {
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            BotonZona("Área mercado")
-            BotonZona("Área de Vías Públicas")
-            BotonZona("Área de Alcoholes")
-            BotonZona("Área de alcoholes")
-            BotonZona("Área de tesorería")
+            BotonZona("Área mercado", navController)
+            BotonZona("Área de Vías Públicas", navController)
+            BotonZona("Área de Alcoholes", navController)
+            BotonZona("Área de pijas", navController)
+            BotonZona("Área de tesorería", navController)
         }
     }
 }
 
 @Composable
-fun BotonZona(texto: String) {
+fun BotonZona(texto: String, navController: NavController) {
     Button(
-        onClick = { /* acción futura */ },
+        onClick = {
+            if (texto == "Área de Vías Públicas") {
+                navController.navigate("mercado")  // ← cambia la ruta si deseas
+            }
+        },
         modifier = Modifier
             .fillMaxWidth(0.8f),
         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF80142B))

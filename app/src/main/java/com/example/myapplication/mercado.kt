@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalPermissionsApi::class)
+
 package com.example.myapplication
 
 import android.os.Bundle
@@ -6,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -14,17 +17,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import com.google.accompanist.permissions.*
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.common.InputImage
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import androidx.camera.core.*
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
+import java.util.concurrent.Executors
 
 class MercadoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,13 +52,10 @@ class MercadoActivity : ComponentActivity() {
 }
 
 @Serializable
-data class Negocio(
-    val ID_Negocio: String,
+data class Ticket(
+    val N_Ticket: String,
     val Nombre_Negocio: String,
-    val Num_Local: String,
-    val Tipo_Pago: String,
-    val Total_Pago: String,
-    val Zona: String
+    val Fecha_Pago: String
 )
 
 object ApiClient {
@@ -52,21 +65,25 @@ object ApiClient {
         }
     }
 
-    private const val BASE_URL = "http://10.0.2.2:3000" // Cambia si es un celular real
+    private const val BASE_URL = "http://192.168.18.5:3000"
 
-    suspend fun obtenerNegocios(): List<Negocio> {
-        return client.get("$BASE_URL/enviadatosMercadoNegocios").body()
+    suspend fun obtenerTickets(): List<Ticket> {
+        return client.get("$BASE_URL/enviadatosMercadoTickets").body()
     }
 }
 
 @Composable
 fun MercadoScreen() {
-    var negocios by remember { mutableStateOf<List<Negocio>>(emptyList()) }
+    var tickets by remember { mutableStateOf<List<Ticket>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
+    var ticketSeleccionado by remember { mutableStateOf<Ticket?>(null) }
+    var mostrarScanner by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         try {
-            negocios = ApiClient.obtenerNegocios()
+            tickets = ApiClient.obtenerTickets()
         } catch (e: Exception) {
             Log.e("API", "Error al obtener datos: ${e.message}")
         } finally {
@@ -74,49 +91,84 @@ fun MercadoScreen() {
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFAFAFA)),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        // ZONA DE TABLA
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(0.8f)
-                .padding(16.dp)
-                .background(Color.White, shape = RoundedCornerShape(12.dp))
-                .shadow(4.dp, RoundedCornerShape(12.dp))
-        ) {
-            if (cargando) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else {
-                TablaZona(negocios)
-            }
+    if (mostrarScanner) {
+        QRScreen { qrResult ->
+            Log.d("QR", "Resultado del QR: $qrResult")
+            mostrarScanner = false
+            ticketSeleccionado = tickets.find { it.N_Ticket == qrResult }
         }
-
-        // BOTONERA
-        Row(
+    } else {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(0.2f)
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .background(Color(0xFFFAFAFA)),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            BotonEstilo("nuevo")
-            BotonEstilo("Editar")
-            BotonEstilo("Borrar")
-            BotonEstilo("cargar")
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.8f)
+                    .padding(16.dp)
+                    .background(Color.White, shape = RoundedCornerShape(12.dp))
+                    .shadow(4.dp, RoundedCornerShape(12.dp))
+            ) {
+                if (cargando) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                } else {
+                    TablaTickets(
+                        tickets = tickets,
+                        seleccionado = ticketSeleccionado,
+                        onSeleccionar = { ticketSeleccionado = it }
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.2f)
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BotonEstilo("nuevo") {
+                    Log.d("BOTÓN", "Agregar nuevo ticket (aún no implementado)")
+                }
+
+                BotonEstilo("Scan") {
+                    mostrarScanner = true
+                }
+
+                BotonEstilo("Borrar") {
+                    ticketSeleccionado?.let {
+                        Log.d("BOTÓN", "Borrar ticket: ${it.N_Ticket}")
+                    } ?: Log.d("BOTÓN", "Selecciona un ticket primero")
+                }
+
+                BotonEstilo("cargar") {
+                    cargando = true
+                    scope.launch {
+                        try {
+                            tickets = ApiClient.obtenerTickets()
+                        } catch (e: Exception) {
+                            Log.e("API", "Error al recargar: ${e.message}")
+                        } finally {
+                            cargando = false
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-fun TablaZona(negocios: List<Negocio>) {
+fun TablaTickets(
+    tickets: List<Ticket>,
+    seleccionado: Ticket?,
+    onSeleccionar: (Ticket) -> Unit
+) {
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-        // Encabezados
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -124,7 +176,7 @@ fun TablaZona(negocios: List<Negocio>) {
                 .padding(4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            listOf("ID", "Nombre", "Local", "Pago", "Total", "Zona").forEach {
+            listOf("Ticket", "Negocio", "Fecha").forEach {
                 Text(
                     text = it,
                     color = Color.White,
@@ -135,21 +187,21 @@ fun TablaZona(negocios: List<Negocio>) {
             }
         }
 
-        // Filas de datos
-        negocios.forEach { negocio ->
+        tickets.forEach { ticket ->
+            val esSeleccionado = ticket == seleccionado
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 2.dp),
+                    .padding(vertical = 2.dp)
+                    .background(if (esSeleccionado) Color(0xFFFAE3E8) else Color.Transparent)
+                    .clickable { onSeleccionar(ticket) },
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 listOf(
-                    negocio.ID_Negocio,
-                    negocio.Nombre_Negocio,
-                    negocio.Num_Local,
-                    negocio.Tipo_Pago,
-                    negocio.Total_Pago,
-                    negocio.Zona
+                    ticket.N_Ticket,
+                    ticket.Nombre_Negocio,
+                    ticket.Fecha_Pago
                 ).forEach {
                     Text(
                         text = it,
@@ -176,5 +228,78 @@ fun BotonEstilo(texto: String, onClick: () -> Unit = {}) {
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
     ) {
         Text(text = texto, color = Color(0xFF80142B), fontSize = 12.sp)
+    }
+}
+
+@Composable
+fun QRScreen(onQrResult: (String) -> Unit) {
+    val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
+
+    LaunchedEffect(Unit) {
+        cameraPermission.launchPermissionRequest()
+    }
+
+    if (cameraPermission.status.isGranted) {
+        QRScannerView(onQrScanned = onQrResult)
+    } else {
+        Text("Permiso de cámara denegado")
+    }
+}
+
+@Composable
+fun QRScannerView(onQrScanned: (String) -> Unit) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+    val previewView = remember { PreviewView(context) }
+    val scanner = BarcodeScanning.getClient()
+    val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
+
+    AndroidView(
+        factory = { previewView },
+        modifier = Modifier.fillMaxSize()
+    ) {
+        cameraProviderFuture.addListener({
+            val cameraProvider = cameraProviderFuture.get()
+            val preview = Preview.Builder().build().also {
+                it.setSurfaceProvider(previewView.surfaceProvider)
+            }
+
+            val analysis = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+
+            analysis.setAnalyzer(cameraExecutor) { imageProxy ->
+                val mediaImage = imageProxy.image
+                if (mediaImage != null) {
+                    val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                    scanner.process(image)
+                        .addOnSuccessListener { barcodes ->
+                            for (barcode in barcodes) {
+                                barcode.rawValue?.let {
+                                    onQrScanned(it)
+                                    cameraProvider.unbindAll()
+                                }
+                            }
+                        }
+                        .addOnFailureListener { Log.e("QR", "Error: ${it.message}") }
+                        .addOnCompleteListener { imageProxy.close() }
+                } else {
+                    imageProxy.close()
+                }
+            }
+
+            try {
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(
+                    lifecycleOwner,
+                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    preview,
+                    analysis
+                )
+            } catch (e: Exception) {
+                Log.e("QR", "Camera binding failed: ${e.message}")
+            }
+        }, ContextCompat.getMainExecutor(context))
     }
 }
