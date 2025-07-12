@@ -18,11 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.accompanist.permissions.*
@@ -55,7 +54,8 @@ class MercadoActivity : ComponentActivity() {
 data class Ticket(
     val N_Ticket: String,
     val Nombre_Negocio: String,
-    val Fecha_Pago: String
+    val Fecha_Pago: String,
+    val Total_Pago: String
 )
 
 object ApiClient {
@@ -169,6 +169,7 @@ fun TablaTickets(
     onSeleccionar: (Ticket) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+        // Encabezado
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -176,7 +177,7 @@ fun TablaTickets(
                 .padding(4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            listOf("Ticket", "Negocio", "Fecha").forEach {
+            listOf("N_Ticket", "Nombre_Negocio", "Total_Pago", "Fecha_Pago").forEach {
                 Text(
                     text = it,
                     color = Color.White,
@@ -187,6 +188,7 @@ fun TablaTickets(
             }
         }
 
+        // Filas de datos
         tickets.forEach { ticket ->
             val esSeleccionado = ticket == seleccionado
 
@@ -201,6 +203,7 @@ fun TablaTickets(
                 listOf(
                     ticket.N_Ticket,
                     ticket.Nombre_Negocio,
+                    ticket.Total_Pago,
                     ticket.Fecha_Pago
                 ).forEach {
                     Text(
