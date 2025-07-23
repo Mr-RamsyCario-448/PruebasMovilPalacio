@@ -55,7 +55,7 @@ fun MenuZonaScreen(navController: NavController) {
 
         // Botones
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(60.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             BotonZona("Área mercado", navController)
@@ -81,4 +81,6 @@ fun BotonZona(texto: String, navController: NavController) {
     ) {
         Text(text = texto, color = Color.White)
     }
+
+
 }

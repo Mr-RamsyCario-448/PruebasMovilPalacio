@@ -1,6 +1,7 @@
 package com.example.myapplication.network
 
 import android.util.Log
+import com.example.myapplication.Ticket
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.okhttp.*
@@ -47,4 +48,14 @@ object ApiLoginClient {
             false
         }
     }
+
+    suspend fun enviarNuevoTicket(ticket: Ticket) {
+        client.post("$BASE_URL/enviardatosMercadoTickets") {
+            contentType(io.ktor.http.ContentType.Application.Json)
+            setBody(ticket)
+        }
+    }
+
+
+
 }

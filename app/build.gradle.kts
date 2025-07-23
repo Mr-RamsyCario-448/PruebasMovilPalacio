@@ -103,4 +103,8 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     implementation("androidx.compose.material:material:1.6.0")
 
+    //combobox
+    implementation("androidx.compose.material3:material3:1.2.1") // o superior
+
+
 }
